@@ -15,7 +15,9 @@ boxes = cross(rows, cols)
 row_units = [cross(r, cols) for r in rows]
 column_units = [cross(rows, c) for c in cols]
 square_units = [cross(rs, cs) for rs in ('ABC','DEF','GHI') for cs in ('123','456','789')]
-unitlist = row_units + column_units + square_units
+diagonal_units = ["A1, B2, C3, D4, E5, F6, G7, H8, I9".split(", "),
+                  "I1, H2, G3, F4, E5, D6, C7, B8, A9".split(", ")]
+unitlist = row_units + column_units + square_units + diagonal_units
 units = dict((s, [u for u in unitlist if s in u]) for s in boxes)
 peers = dict((s, set(sum(units[s],[]))-set([s])) for s in boxes)
 
@@ -34,6 +36,7 @@ def assign_value(values, box, value):
 
 def remove_twins(values, unit, first, second):
     """removes naked twins from all other boxes"""
+
     numbers = values[first]
     for box in unit:
         if box != first and box != second:
@@ -52,7 +55,8 @@ def naked_twins(values):
 
     # Find all instances of naked twins
     # Eliminate the naked twins as possibilities for their peers
-    result = reduce_puzzle(dict(values))
+
+    result = dict(values)
 
     for unit in unitlist:
         for box in unit:
@@ -201,13 +205,13 @@ def find_best_option(values):
 
     return result_key
 
-def search(values):
+def search(values, strategy=naked_twins):
     """
     Using depth-first search and propagation,
     create a search tree and solve the sudoku.
     """
 
-    reduced = reduce_puzzle(dict(values))
+    reduced = strategy(reduce_puzzle(dict(values)))
 
     if not reduced:
         return values
@@ -237,7 +241,7 @@ def solve(grid):
         The dictionary representation of the final sudoku grid. False if no solution exists.
     """
 
-    return search(naked_twins(grid_values(grid)))
+    return search(grid_values(grid))
 
 if __name__ == '__main__':
     diag_sudoku_grid = '2.............62....1....7...6..8...3...9...7...6..4...4....8....52.............3'
