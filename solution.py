@@ -32,6 +32,14 @@ def assign_value(values, box, value):
 
     return values
 
+def remove_twins(values, unit, first, second):
+    """removes naked twins from all other boxes"""
+    numbers = values[first]
+    for box in unit:
+        if box != first and box != second:
+            for num in numbers:
+                values[box] = values[box].replace(num, "")
+
 def naked_twins(values):
     """
     Eliminate values using the naked twins strategy.
@@ -44,6 +52,15 @@ def naked_twins(values):
 
     # Find all instances of naked twins
     # Eliminate the naked twins as possibilities for their peers
+    result = reduce_puzzle(dict(values))
+
+    for unit in unitlist:
+        for box in unit:
+            for other_box in unit:
+                if box != other_box and len(result[box]) == 2 and result[box] == result[other_box]:
+                    remove_twins(result, unit, box, other_box)
+
+    return result
 
 def grid_values(grid):
     """
@@ -220,7 +237,7 @@ def solve(grid):
         The dictionary representation of the final sudoku grid. False if no solution exists.
     """
 
-    return search(grid_values(grid))
+    return search(naked_twins(grid_values(grid)))
 
 if __name__ == '__main__':
     diag_sudoku_grid = '2.............62....1....7...6..8...3...9...7...6..4...4....8....52.............3'
