@@ -2,12 +2,15 @@
 ## Introductory Project: Diagonal Sudoku Solver
 
 # Question 1 (Naked Twins)
-Q: How do we use constraint propagation to solve the naked twins problem?  
-A: *Student should provide answer here*
+Q: How do we use constraint propagation to solve the naked twins problem?
+A: For naked twins the algorithm looks for two boxes in each unit that have identical
+   possible values of length 2, if to boxes in a unit are found then all other boxes
+   in that unit have those possible values removed. 
 
 # Question 2 (Diagonal Sudoku)
-Q: How do we use constraint propagation to solve the diagonal sudoku problem?  
-A: *Student should provide answer here*
+Q: How do we use constraint propagation to solve the diagonal sudoku problem?
+A: Adding new units that reflect the diagonal sections so that 
+   other constraints (such as naked twins) can be applied.
 
 ### Install
 
