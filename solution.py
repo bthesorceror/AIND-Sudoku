@@ -1,25 +1,41 @@
+""" Solving sudokus """
+
 from collections import defaultdict
-from visualize import visualize_assignments
-from itertools import product
 from functools import partial
+from itertools import product
+from visualize import visualize_assignments
+
+def cross(first, second):
+    "Cross product of elements in first and elements in second."
+
+    return [a+b for a in first for b in second]
+
+def rows():
+    """ returns valid rows """
+
+    return 'ABCDEFGHI'
+
+def cols():
+    """ returns valid columns """
+
+    return '123456789'
+
+def build_unit_list():
+    """builds unit list"""
+
+    row_units = [cross(current_row, cols()) for current_row in rows()]
+    column_units = [cross(rows(), current_column) for current_column in cols()]
+    srows = ('ABC', 'DEF', 'GHI')
+    scols = ('123', '456', '789')
+    square_units = [cross(crows, ccols) for crows in srows for ccols in scols]
+    diagonal_units = ["A1, B2, C3, D4, E5, F6, G7, H8, I9".split(", "),
+                      "I1, H2, G3, F4, E5, D6, C7, B8, A9".split(", ")]
+
+    return row_units + column_units + square_units + diagonal_units
 
 assignments = []
-
-rows = 'ABCDEFGHI'
-cols = '123456789'
-
-def cross(a, b):
-    "Cross product of elements in A and elements in B."
-    return [s+t for s in a for t in b]
-
-boxes = cross(rows, cols)
-
-row_units = [cross(r, cols) for r in rows]
-column_units = [cross(rows, c) for c in cols]
-square_units = [cross(rs, cs) for rs in ('ABC','DEF','GHI') for cs in ('123','456','789')]
-diagonal_units = ["A1, B2, C3, D4, E5, F6, G7, H8, I9".split(", "),
-                  "I1, H2, G3, F4, E5, D6, C7, B8, A9".split(", ")]
-unitlist = row_units + column_units + square_units + diagonal_units
+boxes = cross(rows(), cols())
+unitlist = build_unit_list()
 units = dict((s, [u for u in unitlist if s in u]) for s in boxes)
 peers = dict((s, set(sum(units[s],[]))-set([s])) for s in boxes)
 
@@ -60,18 +76,14 @@ def naked_twins(values):
         the values dictionary with the naked twins eliminated from peers.
     """
 
-    # Find all instances of naked twins
-    # Eliminate the naked twins as possibilities for their peers
-
     result = dict(values)
+    removal = partial(remove_twins, result)
+    validate = partial(valid_twins, result)
 
     for unit in unitlist:
-        removal = partial(remove_twins, result)
         for box, other in product(unit, unit):
-            if valid_twins(result, box, other):
-                valid_values = [value for value in unit if value != box and value != other]
-
-                removal(valid_values, result[box])
+            if validate(box, other):
+                removal([cbox for cbox in unit if cbox != box and cbox != other], result[box])
 
     return result
 
@@ -107,12 +119,12 @@ def display(values):
 
     lengths = [len(values[s]) for s in boxes]
     width = 1 + max(lengths)
-    line = '+'.join(['-'*(width*3)]*3)
+    line = '+'.join(['-' * (width * 3)] * 3)
 
-    for r in rows:
-        print(''.join(values[r+c].center(width)+('|' if c in '36' else '')
-                      for c in cols))
-        if r in 'CF':
+    for crow in rows():
+        print(''.join(values[crow + ccol].center(width) + ('|' if ccol in '36' else '')
+                      for ccol in cols()))
+        if crow in 'CF':
             print(line)
 
 def eliminate(values):
@@ -155,16 +167,18 @@ def only_choice(values):
         tracker = defaultdict(list)
 
         for unit_key in unit:
-            for l in values[unit_key]:
-                tracker[l].append(unit_key)
+            for number in values[unit_key]:
+                tracker[number].append(unit_key)
 
-        for option, l in tracker.items():
-            if len(l) == 1:
-                assign_value(new_values, l[0], option)
+        for option, box_list in tracker.items():
+            if len(box_list) == 1:
+                assign_value(new_values, box_list[0], option)
 
     return new_values
 
 def reduce_puzzle(values):
+    """ Reduces the number of options for each box in the puzzle """
+
     stalled = False
     while not stalled:
         # Check how many boxes have a determined value
@@ -243,12 +257,12 @@ def solve(grid):
     return search(grid_values(grid))
 
 if __name__ == '__main__':
-    diag_sudoku_grid = '2.............62....1....7...6..8...3...9...7...6..4...4....8....52.............3'
-    display(solve(diag_sudoku_grid))
+    DIAG_SUDOKU_GRID = '2.............62....1....7...6..8...' + \
+                       '3...9...7...6..4...4....8....52.............3'
+    display(solve(DIAG_SUDOKU_GRID))
 
     try:
         visualize_assignments(assignments)
-
     except SystemExit:
         pass
     except:
