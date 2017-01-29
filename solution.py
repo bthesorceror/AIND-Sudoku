@@ -1,5 +1,7 @@
 from collections import defaultdict
 from visualize import visualize_assignments
+from itertools import product
+from functools import partial
 
 assignments = []
 
@@ -34,14 +36,19 @@ def assign_value(values, box, value):
 
     return values
 
-def remove_twins(values, unit, first, second):
+def remove_twins(values, unit, numbers):
     """removes naked twins from all other boxes"""
 
-    numbers = values[first]
-    for box in unit:
-        if box != first and box != second:
-            for num in numbers:
-                values[box] = values[box].replace(num, "")
+    for box, num in product(unit, numbers):
+        values[box] = values[box].replace(num, "")
+
+def valid_twins(values, first, second):
+    """
+    Validates that boxes are naked twins
+    """
+
+    return first != second and len(values[first]) == 2 and values[first] == values[second]
+
 
 def naked_twins(values):
     """
@@ -59,10 +66,12 @@ def naked_twins(values):
     result = dict(values)
 
     for unit in unitlist:
-        for box in unit:
-            for other_box in unit:
-                if box != other_box and len(result[box]) == 2 and result[box] == result[other_box]:
-                    remove_twins(result, unit, box, other_box)
+        removal = partial(remove_twins, result)
+        for box, other in product(unit, unit):
+            if valid_twins(result, box, other):
+                valid_values = [value for value in unit if value != box and value != other]
+
+                removal(valid_values, result[box])
 
     return result
 
@@ -119,18 +128,13 @@ def eliminate(values):
         Resulting Sudoku in dictionary form after eliminating values.
     """
 
-    initialized = []
-
     for key in values:
         if len(values[key]) == 1:
-            initialized.append(key)
+            value = values[key][0]
+            current_peers = peers[key]
 
-    for key in initialized:
-        value = values[key][0]
-        current_peers = peers[key]
-
-        for peer in current_peers:
-            assign_value(values, peer, values[peer].replace(value, ""))
+            for peer in current_peers:
+                assign_value(values, peer, values[peer].replace(value, ""))
 
     return values
 
@@ -166,7 +170,7 @@ def reduce_puzzle(values):
         # Check how many boxes have a determined value
         solved_values_before = len([box for box in values.keys() if len(values[box]) == 1])
 
-        values = only_choice(eliminate(values))
+        values = only_choice(eliminate(dict(values)))
 
         # Check how many boxes have a determined value, to compare
         solved_values_after = len([box for box in values.keys() if len(values[box]) == 1])
@@ -175,18 +179,13 @@ def reduce_puzzle(values):
         # Sanity check, return False if there is a box with zero available values:
         if len([box for box in values.keys() if len(values[box]) == 0]):
             return False
+
     return values
 
 def solved(values):
     """ returns if the current game is solved """
 
-    result = True
-
-    for _, value in values.items():
-        if len(value) != 1:
-            result = False
-
-    return result
+    return len([0 for value in values.values() if len(value) != 1]) == 0
 
 def find_best_option(values):
     """
